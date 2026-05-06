@@ -5,4 +5,4 @@ builder = "NIXPACKS"
 nodeVersion = "22"
 
 [deploy]
-startCommand = "npm run build && npx serve -s dist -l $PORT"
+startCommand = "npx vite preview --host 0.0.0.0 --port 4173"
