@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(npm --version)",
+      "Bash(npm install *)",
+      "Bash(railway --version)",
+      "Bash(railway status *)",
+      "Bash(railway link *)",
+      "Bash(railway logs *)",
+      "Bash(railway variables *)",
+      "Bash(railway redeploy *)",
+      "Bash(railway up *)",
+      "Bash(python3 -c \"import sys,json; lines=[json.loads\\(l\\) for l in sys.stdin if l.strip\\(\\)]; lines.sort\\(key=lambda x:x['timestamp']\\); [print\\(x['timestamp'], x['message']\\) for x in lines[-20:]]\")",
+      "Bash(node -e \"const lines=[]; require\\('readline'\\).createInterface\\({input:process.stdin}\\).on\\('line',l=>{try{lines.push\\(JSON.parse\\(l\\)\\)}catch{}}\\).on\\('close',\\(\\)=>{lines.sort\\(\\(a,b\\)=>a.timestamp>b.timestamp?1:-1\\); lines.slice\\(-20\\).forEach\\(x=>console.log\\(x.timestamp, x.message\\)\\)}\\)\")",
+      "PowerShell(try { $r = Invoke-WebRequest -Uri \"https://genaistudio-production.up.railway.app\" -TimeoutSec 10 -MaximumRedirection 5; \"Status: $\\($r.StatusCode\\) | Content-Length: $\\($r.Content.Length\\)\" } catch { \"Error: $\\($_.Exception.Message\\)\" })"
+    ]
+  }
+}
