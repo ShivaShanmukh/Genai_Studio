@@ -23,12 +23,14 @@ const PRESETS = [
   { label: "Fashion Edit",  prompt: "High fashion editorial, model in avant-garde outfit, minimalist studio, dramatic shadows, Vogue-style photography", caption: "Style is not what you wear. It is who you are." },
 ]
 
+const ENV_FAL = import.meta.env.VITE_FAL_KEY || ""
+
 export default function App() {
   const [prompt, setPrompt]       = useState("")
   const [caption, setCaption]     = useState("")
   const [model, setModel]         = useState(MODELS[0].id)
   const [voice, setVoice]         = useState(VOICES[0].id)
-  const [falKey, setFalKey]       = useState("")
+  const [falKey, setFalKey]       = useState(ENV_FAL)
   const [elKey, setElKey]         = useState("")
   const [imageUrl, setImageUrl]   = useState(null)
   const [audioUrl, setAudioUrl]   = useState(null)
@@ -36,13 +38,14 @@ export default function App() {
   const [loadStep, setLoadStep]   = useState("")
   const [error, setError]         = useState(null)
   const [generated, setGenerated] = useState(false)
-  const [keysOpen, setKeysOpen]   = useState(true)
+  const [keysOpen, setKeysOpen]   = useState(!ENV_FAL)
   const audioRef = useRef(null)
 
   useEffect(() => {
     const k1 = localStorage.getItem("gbs_fal")
     const k2 = localStorage.getItem("gbs_el")
     if (k1) { setFalKey(k1); setKeysOpen(false) }
+    else if (ENV_FAL) setKeysOpen(false)
     if (k2) setElKey(k2)
   }, [])
 
