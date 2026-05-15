@@ -9,4 +9,4 @@ COPY . .
 RUN npm run build
 
 EXPOSE 4173
-CMD ["sh", "-c", "npx serve -s dist -l $PORT"]
+CMD ["npx", "serve", "-s", "dist"]

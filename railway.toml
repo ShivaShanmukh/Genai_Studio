@@ -6,7 +6,7 @@ buildCommand = "npm run build"
 nodeVersion = "22"
 
 [deploy]
-startCommand = "npx serve -s dist -l $PORT"
+startCommand = "npx serve -s dist"
 healthcheckPath = "/"
 healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
