@@ -2,10 +2,10 @@ import { useState, useRef, useEffect } from "react"
 import "./App.css"
 
 const MODELS = [
-  { id: "fal-ai/flux/schnell", label: "FLUX Schnell", desc: "Fast · General" },
-  { id: "fal-ai/flux/dev",     label: "FLUX Dev",     desc: "Quality · Creative" },
-  { id: "fal-ai/aura-flow",    label: "Aura Flow",    desc: "Artistic · Painterly" },
-  { id: "fal-ai/stable-diffusion-xl/base", label: "SDXL", desc: "Classic · Versatile" },
+  { id: "fal-ai/flux/schnell",              label: "FLUX Schnell", desc: "Fast · General",      steps: 4  },
+  { id: "fal-ai/flux/dev",                  label: "FLUX Dev",     desc: "Quality · Creative",  steps: 28 },
+  { id: "fal-ai/aura-flow",                 label: "Aura Flow",    desc: "Artistic · Painterly", steps: 30 },
+  { id: "fal-ai/stable-diffusion-xl/base",  label: "SDXL",         desc: "Classic · Versatile",  steps: 30 },
 ]
 
 const VOICES = [
@@ -65,12 +65,18 @@ export default function App() {
       catch { throw new Error(`${label} returned unexpected data (status ${res.status}): ${txt.slice(0, 200)}`) }
     }
 
+    const activeModel = MODELS.find(m => m.id === model)
     try {
-      setLoadStep("Submitting to " + (MODELS.find(m => m.id === model)?.label ?? model) + "…")
+      setLoadStep("Submitting to " + (activeModel?.label ?? model) + "…")
       const submitRes = await fetch(`https://queue.fal.run/${model}`, {
         method: "POST",
         headers: { "Authorization": `Key ${falKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, image_size: "landscape_16_9", num_inference_steps: 4, num_images: 1 })
+        body: JSON.stringify({
+          prompt,
+          image_size: "landscape_16_9",
+          num_inference_steps: activeModel?.steps ?? 28,
+          num_images: 1
+        })
       })
       const submitData = await safeJson(submitRes, "fal.ai submit")
       if (!submitRes.ok) throw new Error(`fal.ai ${submitRes.status}: ${submitData.detail ?? submitData.message ?? JSON.stringify(submitData)}`)
@@ -78,15 +84,15 @@ export default function App() {
       if (!request_id) throw new Error(`fal.ai did not return a request_id. Response: ${JSON.stringify(submitData)}`)
 
       let imgResult = null
-      for (let i = 0; i < 60; i++) {
+      for (let i = 0; i < 90; i++) {
         await new Promise(r => setTimeout(r, 2000))
-        setLoadStep(`Generating image… ${i * 2 + 2}s`)
         const p = await fetch(`https://queue.fal.run/${model}/requests/${request_id}/status`, {
           headers: { "Authorization": `Key ${falKey}` }
         })
         const d = await safeJson(p, "fal.ai status")
+        if (d.status === "IN_QUEUE")    { setLoadStep(`Queued… waiting for runner (${i * 2 + 2}s)`); continue }
+        if (d.status === "IN_PROGRESS") { setLoadStep(`Generating image… ${i * 2 + 2}s`);             continue }
         if (d.status === "COMPLETED") {
-          // Fetch the actual result
           const r = await fetch(`https://queue.fal.run/${model}/requests/${request_id}`, {
             headers: { "Authorization": `Key ${falKey}` }
           })
@@ -94,7 +100,7 @@ export default function App() {
           break
         }
         if (d.images || d.output?.images) { imgResult = d; break }
-        if (d.status === "FAILED") throw new Error("Image generation failed — try a different prompt")
+        if (d.status === "FAILED") throw new Error("Image generation failed — try a different prompt or model")
       }
       if (!imgResult) throw new Error("Timed out waiting for image. Try again.")
 
@@ -118,6 +124,10 @@ export default function App() {
         if (vr.ok) {
           const blob = await vr.blob()
           setAudioUrl(URL.createObjectURL(blob))
+        } else {
+          const errTxt = await vr.text().catch(() => "")
+          // Image succeeded — show it but warn about voice
+          setError(`Image generated! Voiceover failed (ElevenLabs ${vr.status}): ${errTxt.slice(0, 120)}`)
         }
       }
       setGenerated(true)
@@ -303,7 +313,7 @@ export default function App() {
 
       <footer className="footer">
         <strong>Siva. I</strong> · Generative Brand Studio · AI Creative Pipeline Demo
-        <span className="footer-stack">React + Vite · fal.ai · ElevenLabs · Vercel</span>
+        <span className="footer-stack">React + Vite · fal.ai · ElevenLabs · Railway</span>
       </footer>
     </div>
   )
