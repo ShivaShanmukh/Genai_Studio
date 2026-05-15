@@ -57,6 +57,14 @@ export default function App() {
     setLoading(true); setError(null); setGenerated(false)
     setImageUrl(null); setAudioUrl(null)
 
+    // Helper: parse JSON safely, throw with raw text on failure
+    async function safeJson(res, label) {
+      const txt = await res.text()
+      if (!txt || txt.trim() === "") throw new Error(`${label} returned an empty response (status ${res.status}). Check your API key is correct and has credits.`)
+      try { return JSON.parse(txt) }
+      catch { throw new Error(`${label} returned unexpected data (status ${res.status}): ${txt.slice(0, 200)}`) }
+    }
+
     try {
       setLoadStep("Submitting to " + (MODELS.find(m => m.id === model)?.label ?? model) + "…")
       const submitRes = await fetch(`https://queue.fal.run/${model}`, {
@@ -64,29 +72,36 @@ export default function App() {
         headers: { "Authorization": `Key ${falKey}`, "Content-Type": "application/json" },
         body: JSON.stringify({ prompt, image_size: "landscape_16_9", num_inference_steps: 4, num_images: 1 })
       })
-      if (!submitRes.ok) {
-        const txt = await submitRes.text()
-        throw new Error(`fal.ai ${submitRes.status}: ${txt}`)
-      }
-      const { request_id } = await submitRes.json()
+      const submitData = await safeJson(submitRes, "fal.ai submit")
+      if (!submitRes.ok) throw new Error(`fal.ai ${submitRes.status}: ${submitData.detail ?? submitData.message ?? JSON.stringify(submitData)}`)
+      const request_id = submitData.request_id
+      if (!request_id) throw new Error(`fal.ai did not return a request_id. Response: ${JSON.stringify(submitData)}`)
 
       let imgResult = null
       for (let i = 0; i < 60; i++) {
         await new Promise(r => setTimeout(r, 2000))
         setLoadStep(`Generating image… ${i * 2 + 2}s`)
-        const p = await fetch(`https://queue.fal.run/${model}/requests/${request_id}`, {
+        const p = await fetch(`https://queue.fal.run/${model}/requests/${request_id}/status`, {
           headers: { "Authorization": `Key ${falKey}` }
         })
-        const d = await p.json()
-        if (d.status === "COMPLETED" || d.images) { imgResult = d; break }
-        if (d.status === "FAILED") throw new Error("Image generation failed — check your prompt")
+        const d = await safeJson(p, "fal.ai status")
+        if (d.status === "COMPLETED") {
+          // Fetch the actual result
+          const r = await fetch(`https://queue.fal.run/${model}/requests/${request_id}`, {
+            headers: { "Authorization": `Key ${falKey}` }
+          })
+          imgResult = await safeJson(r, "fal.ai result")
+          break
+        }
+        if (d.images || d.output?.images) { imgResult = d; break }
+        if (d.status === "FAILED") throw new Error("Image generation failed — try a different prompt")
       }
-      if (!imgResult) throw new Error("Timed out. Try again.")
+      if (!imgResult) throw new Error("Timed out waiting for image. Try again.")
 
       const url = imgResult.images?.[0]?.url
                 ?? imgResult.output?.images?.[0]?.url
                 ?? imgResult.image?.url
-      if (!url) throw new Error("No image URL in response.")
+      if (!url) throw new Error(`No image URL in response. Got: ${JSON.stringify(imgResult).slice(0, 300)}`)
       setImageUrl(url)
 
       if (elKey && caption.trim()) {
