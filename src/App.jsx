@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect } from "react"
+import { fal } from "@fal-ai/client"
 import "./App.css"
 
 const MODELS = [
-  { id: "fal-ai/flux/schnell",              label: "FLUX Schnell", desc: "Fast · General",      steps: 4  },
-  { id: "fal-ai/flux/dev",                  label: "FLUX Dev",     desc: "Quality · Creative",  steps: 28 },
-  { id: "fal-ai/aura-flow",                 label: "Aura Flow",    desc: "Artistic · Painterly", steps: 30 },
-  { id: "fal-ai/stable-diffusion-xl/base",  label: "SDXL",         desc: "Classic · Versatile",  steps: 30 },
+  { id: "fal-ai/flux/schnell", label: "FLUX Schnell", desc: "Fast · General",      steps: 4  },
+  { id: "fal-ai/flux/dev",     label: "FLUX Dev",     desc: "Quality · Creative",  steps: 28 },
+  { id: "fal-ai/aura-flow",    label: "Aura Flow",    desc: "Artistic · Painterly", steps: 30 },
+  { id: "fal-ai/fast-sdxl",    label: "SDXL",         desc: "Classic · Versatile",  steps: 30 },
 ]
 
 const VOICES = [
@@ -57,57 +58,28 @@ export default function App() {
     setLoading(true); setError(null); setGenerated(false)
     setImageUrl(null); setAudioUrl(null)
 
-    // Helper: parse JSON safely, throw with raw text on failure
-    async function safeJson(res, label) {
-      const txt = await res.text()
-      if (!txt || txt.trim() === "") throw new Error(`${label} returned an empty response (status ${res.status}). Check your API key is correct and has credits.`)
-      try { return JSON.parse(txt) }
-      catch { throw new Error(`${label} returned unexpected data (status ${res.status}): ${txt.slice(0, 200)}`) }
-    }
-
     const activeModel = MODELS.find(m => m.id === model)
     try {
+      fal.config({ credentials: falKey })
+
       setLoadStep("Submitting to " + (activeModel?.label ?? model) + "…")
-      const submitRes = await fetch(`https://queue.fal.run/${model}`, {
-        method: "POST",
-        headers: { "Authorization": `Key ${falKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
+
+      const result = await fal.subscribe(model, {
+        input: {
           prompt,
           image_size: "landscape_16_9",
           num_inference_steps: activeModel?.steps ?? 28,
-          num_images: 1
-        })
+          num_images: 1,
+        },
+        onQueueUpdate: (update) => {
+          if (update.status === "IN_QUEUE")    setLoadStep("Queued… waiting for runner…")
+          if (update.status === "IN_PROGRESS") setLoadStep("Generating image…")
+        },
       })
-      const submitData = await safeJson(submitRes, "fal.ai submit")
-      if (!submitRes.ok) throw new Error(`fal.ai ${submitRes.status}: ${submitData.detail ?? submitData.message ?? JSON.stringify(submitData)}`)
-      const request_id = submitData.request_id
-      if (!request_id) throw new Error(`fal.ai did not return a request_id. Response: ${JSON.stringify(submitData)}`)
 
-      let imgResult = null
-      for (let i = 0; i < 90; i++) {
-        await new Promise(r => setTimeout(r, 2000))
-        const p = await fetch(`https://queue.fal.run/${model}/requests/${request_id}/status`, {
-          headers: { "Authorization": `Key ${falKey}` }
-        })
-        const d = await safeJson(p, "fal.ai status")
-        if (d.status === "IN_QUEUE")    { setLoadStep(`Queued… waiting for runner (${i * 2 + 2}s)`); continue }
-        if (d.status === "IN_PROGRESS") { setLoadStep(`Generating image… ${i * 2 + 2}s`);             continue }
-        if (d.status === "COMPLETED") {
-          const r = await fetch(`https://queue.fal.run/${model}/requests/${request_id}`, {
-            headers: { "Authorization": `Key ${falKey}` }
-          })
-          imgResult = await safeJson(r, "fal.ai result")
-          break
-        }
-        if (d.images || d.output?.images) { imgResult = d; break }
-        if (d.status === "FAILED") throw new Error("Image generation failed — try a different prompt or model")
-      }
-      if (!imgResult) throw new Error("Timed out waiting for image. Try again.")
-
-      const url = imgResult.images?.[0]?.url
-                ?? imgResult.output?.images?.[0]?.url
-                ?? imgResult.image?.url
-      if (!url) throw new Error(`No image URL in response. Got: ${JSON.stringify(imgResult).slice(0, 300)}`)
+      const imgData = result.data
+      const url = imgData.images?.[0]?.url ?? imgData.image?.url
+      if (!url) throw new Error(`No image URL in response. Got: ${JSON.stringify(imgData).slice(0, 300)}`)
       setImageUrl(url)
 
       if (elKey && caption.trim()) {
@@ -126,7 +98,6 @@ export default function App() {
           setAudioUrl(URL.createObjectURL(blob))
         } else {
           const errTxt = await vr.text().catch(() => "")
-          // Image succeeded — show it but warn about voice
           setError(`Image generated! Voiceover failed (ElevenLabs ${vr.status}): ${errTxt.slice(0, 120)}`)
         }
       }
