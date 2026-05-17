@@ -14,12 +14,13 @@ The core of Genai Studio is its ability to generate high-fidelity brand imagery.
 Experience the seamless integration of AI voice synthesis. This demo showcases a synchronized voiceover generated directly from the visual context.
 <video src="./media/elevenlabs-voiceover.mp4" width="600"></video>
 
-### Portfolio Showcases
-Explore more examples of brand voices and creative outputs.
+### Brand Voice Showcase
+This demo highlights the clarity and tonal range of the neural voices available in Genai Studio.
+<video src="./media/elevenlabs-3.mp4" width="600"></video>
 
-| ElevenLabs Portfolio | Brand Voice |
-| :---: | :---: |
-| <video src="./media/elevenlabs-portfolio-1.mp4" width="350"></video> | <video src="./media/elevenlabs-3.mp4" width="350"></video> |
+### More Examples
+Explore further creative outputs and portfolio samples.
+<video src="./media/elevenlabs-portfolio-1.mp4" width="600"></video>
 
 ---
 
