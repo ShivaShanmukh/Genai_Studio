@@ -7,14 +7,19 @@ An advanced AI Creative Pipeline designed to streamline the creation of high-qua
 ## 📺 Demo
 
 ### Visual Generation
+The core of Genai Studio is its ability to generate high-fidelity brand imagery.
 ![Lone Figure Standing](./media/lone-figure-standing.jpg)
 
-### Voiceover Showcases
-Genai Studio seamlessly integrates voice synthesis to breathe life into your brand visuals.
+### Voiceover Demo
+Experience the seamless integration of AI voice synthesis. This demo showcases a synchronized voiceover generated directly from the visual context.
+<video src="./media/elevenlabs-voiceover.mp4" width="600"></video>
 
-| ElevenLabs Portfolio | Voiceover Demo | Brand Voice |
-| :---: | :---: | :---: |
-| <video src="./media/elevenlabs-portfolio-1.mp4" width="280"></video> | <video src="./media/elevenlabs-voiceover.mp4" width="280"></video> | <video src="./media/elevenlabs-3.mp4" width="280"></video> |
+### Portfolio Showcases
+Explore more examples of brand voices and creative outputs.
+
+| ElevenLabs Portfolio | Brand Voice |
+| :---: | :---: |
+| <video src="./media/elevenlabs-portfolio-1.mp4" width="350"></video> | <video src="./media/elevenlabs-3.mp4" width="350"></video> |
 
 ---
 
